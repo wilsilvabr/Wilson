@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+  <title>Bitaeon - Simulador de rendimentos</title>
+  <script src="https://unpkg.com/vue@2.6.10/dist/vue.js"></script>
+</head>
+
+<body>
+
+  <div class="container">
+    <h1>Bitaeon - Simulador de rendimentos</h1>
+    <div id="app-2">
+        <form v-on:submit.prevent="onSubmit" style="padding: 20px 0px">
+          <div class="row">
+            <div class="col">
+              <div class="form-group">
+                <label for="valorInicial">Valor inicial BTC</label>
+                <input class="form-control" v-model="valorInicial">
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-group">
+                <label for="meses">Meses</label>
+                <input class="form-control" v-model="meses">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-3">
+              <div class="form-group">
+                <label for="parcentualReinvestimento">Percentual Reinvestimento</label>
+                <div class="input-group">
+                  <input class="form-control" v-model="parcentualReinvestimento">
+                  <div class="input-group-append">
+                    <span class="input-group-text">%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-3">
+                <div class="form-group">
+                  <label for="valorBTCDolar">Cotação USD/BTC</label>
+                  <div class="input-group">
+                    <input class="form-control" v-model="valorBTCDolar">
+                  </div>
+                </div>
+              </div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <button class="btn btn-primary" @click="calcular">Calcular</button>
+              <div id="msg"></div>
+            </div>
+          </div>
+        </form>
+      <div class="row">
+        <div class="col">
+          <table class="table table-sm table-bordered">
+            <tr>
+              <th>Valor inicial em BTC</th>
+              <td class="text-right">{{valorInicial}}</td>
+              <th>Valor inicial em USD</th>
+              <td class="text-right">{{numero2(valorInicial * valorBTCDolar)}}</td>
+            </tr>
+            <tr>
+              <th>Valor final em BTC</th>
+              <td class="text-right">{{numero((valorInvestido * 0.9) + valorContaCorrente)}}</td>
+              <th>Valor final em USD</th>
+              <td class="text-right">{{numero2(((valorInvestido * 0.9) + valorContaCorrente) * valorBTCDolar)}}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <table class="table table-sm table-bordered">
+            <thead class="thead-dark">
+              <tr>
+                <th>#</th>
+                <th>Dia</th>
+                <th>Investido</th>
+                <th>Investido USD</th>
+                <th>Conta Corrente</th>
+                <th>Conta Corrente USD</th>
+                <th>Rendimento</th>
+                <th>Mensagem</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="resultado in resultados" v-bind:class="{'table-primary': resultado.linhaMes}">
+                <td>{{resultado.i}}</td>
+                <td>{{resultado.dia}}</td>
+                <td>{{resultado.investido}}</td>
+                <td>{{resultado.investidoUSD}}</td>
+                <td>{{resultado.contaCorrente}}</td>
+                <td>{{resultado.contaCorrenteUSD}}</td>
+                <td>{{resultado.percentualRendimento}} %</td>
+                <td>{{resultado.log}}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Optional JavaScript -->
+  <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+    integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+    integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+    crossorigin="anonymous"></script>
+  <script>
+    var app = new Vue({
+      el: '#app-2',
+      data: {
+        nome: '',
+        resultados: [],
+        valorInicial: 0.005,
+        valorInvestido: 0,
+        valorContaCorrente: 0,
+        meses: 2,
+        dias: ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'],
+        parcentualReinvestimento: 100,
+        dia: 0,
+        valorBTCDolar: 4165.10
+      },
+      created: function () {
+      },
+      methods: {
+        calcular: function () {
+          // Contrato inicial
+          this.resultados = [];
+          this.valorInvestido = parseFloat(this.valorInicial);
+          this.valorContaCorrente = 0;
+          for (i = 1; i<=this.meses*30; i++) {
+            let data = new Date();
+            data.setDate(data.getDate() + i - 1);
+
+            const percentualDia = data.getDay() === 0 || data.getDay() === 6 ? 0.015 : 0.030;
+            let rendimentoDoDia = this.valorInvestido * percentualDia;
+            let reinvestimentoDia = rendimentoDoDia * parseFloat(this.parcentualReinvestimento) / 100;
+            let contaCorrenteDia = rendimentoDoDia - reinvestimentoDia;
+
+            this.valorInvestido += reinvestimentoDia;
+            this.valorContaCorrente += contaCorrenteDia;
+
+            const percentualRendimento = ((this.valorInvestido * 0.9) + this.valorContaCorrente) / parseFloat(this.valorInicial) * 100;
+
+            let resultado = {
+              i: i,
+              dia: this.dias[data.getDay()],
+              investido: this.numero(this.valorInvestido),
+              investidoUSD: this.numero2(this.valorInvestido * this.valorBTCDolar),
+              contaCorrente: this.numero(this.valorContaCorrente),
+              contaCorrenteUSD: this.numero2(this.valorContaCorrente * this.valorBTCDolar),
+              log: 'testando',
+              percentualRendimento: this.numero2(percentualRendimento),
+              linhaMes: i%30 === 0
+            };
+            this.resultados.push(resultado);
+          }
+        },
+        numero: function(numero) {
+          return parseFloat(Math.round(numero * 100000000) / 100000000).toFixed(8);
+        },
+        numero2: function(numero) {
+          return parseFloat(Math.round(numero * 100) / 100).toFixed(2);
+        },
+        onSubmit: function(numero) {
+          console.log('onsubmit');
+        },
+      }
+    })
+
+    function testeFora() {
+      alert('estou fora ' + app.resultado);
+      app.contrato(155);
+    }
+
+  </script>
+</body>
+
+</html>

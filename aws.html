@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+  <title>AWS Mining - Simulador de rendimento</title>
+  <script src="vue.min.js"></script>
+</head>
+
+<body>
+
+  <div class="container">
+    <h1>AWS Mining - Simulador de rendimentos</h1>
+    <div id="app-2">
+      <div style="padding: 20px 0px">
+        <div class="row">
+          <div class="col">
+            <div class="form-group">
+              <label for="valorInicial">Valor inicial USD</label>
+              <input class="form-control" v-model="valorInicial">
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-group">
+              <label for="meses">Meses reinvestindo</label>
+              <input class="form-control" v-model="meses">
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <div class="form-group">
+              <label for="rendimentoDiario">Rendimento diário estimado</label>
+              <input class="form-control" v-model="rendimentoDiario">
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" v-model="comprarContrato">
+              <label class="form-check-label" for="comprarContrato">
+                Comprar novo contrato assim que possível
+              </label>
+            </div>
+            <div class="form-group" v-if="false">
+              <label for="valorContrato">Valor do contrato</label>
+              <input class="form-control" v-model="valorContrato">
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <button class="btn btn-primary" @click="calcular">Calcular</button>
+            <div id="msg"></div>
+          </div>
+        </div>
+        <div class="row" v-if="dia > 0">
+          <div class="col-12">
+            Rendimento total: {{numero(rendimentoTotal)}} em {{dia}} dias.
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-12">
+          <table class="table table-sm table-bordered">
+            <thead class="thead-dark">
+              <tr>
+                <th>Dia</th>
+                <th>Contratos ativos</th>
+                <th>Rendimento Acumulado</th>
+                <th>Mensagem</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="resultado in resultados">
+                <td>{{resultado.dia}}</td>
+                <td>{{resultado.contratos}}</td>
+                <td>{{resultado.rendimentoTotal}}</td>
+                <td>{{resultado.log}}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Optional JavaScript -->
+  <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+    integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+    integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+    crossorigin="anonymous"></script>
+  <script>
+    var app = new Vue({
+      el: '#app-2',
+      data: {
+        message: 'You loaded this page on ' + new Date().toLocaleString(),
+        nome: '',
+        resultados: [],
+        contratos: [],
+        valorInicial: 40,
+        meses: 12,
+        rendimentoDiario: 0.004,
+        comprarContrato: true,
+        valorContrato: 40,
+        rendimentoTotal: 0,
+        count: 0,
+        dia: 0
+      },
+      created: function () {
+      },
+      methods: {
+        calcular: function () {
+          // Contrato inicial
+          this.resultados = [];
+          this.contratos = [];
+          this.count = 0;
+          this.contrato(this.valorInicial);
+          this.rendimentoTotal = 0;
+          this.dia = 0;
+          while (this.contratos.length > 0) {
+            this.dia++;
+            let resultado = {
+              dia: this.dia,
+              contratos: 0,
+              rendimentoTotal: 0,
+              log: ''
+            }
+            this.contratos = this.contratos.map(contrato => {
+              if ((contrato.valor * this.rendimentoDiario) + contrato.rendimento > contrato.valor * 2) {
+                this.rendimentoTotal += (contrato.valor * 2) - (contrato.rendimento);
+                contrato.rendimento = contrato.valor * 2;
+                resultado.log += 'Contrato ' + contrato.numeroContrato + ' terminou'
+              } else {
+                this.rendimentoTotal += contrato.valor * this.rendimentoDiario;
+                contrato.rendimento += contrato.valor * this.rendimentoDiario;
+              }
+              return contrato;
+            });           
+            this.contratos = this.contratos.filter(contrato => contrato.rendimento < contrato.valor * 2);
+            resultado.contratos = this.contratos.length;
+            resultado.rendimentoTotal = this.numero(this.rendimentoTotal);
+
+            if (this.dia <= this.meses * 30 && this.comprarContrato) {
+              while (this.rendimentoTotal >= this.valorContrato) {
+                  this.contrato(this.valorContrato);
+                  this.rendimentoTotal -= this.valorContrato;
+                  resultado.log += 'Contrato ' + this.count + ' criado\n'; 
+              }
+              // if (this.dia % 2 === 0) {
+              //   this.contrato(this.valorContrato);
+              //   resultado.log += 'Contrato ' + this.count + ' criado - automatico\n'; 
+              // }
+            }
+            this.resultados.push(resultado);
+          }
+        },
+        contrato: function(valor) {
+          this.count++;
+          this.contratos.push({
+            numeroContrato: this.count,
+            valor: valor,
+            rendimento: 0
+          })
+        },
+        numero: function(numero) {
+          return parseFloat(Math.round(numero * 100) / 100).toFixed(2);
+        }
+      }
+    })
+
+    function testeFora() {
+      alert('estou fora ' + app.resultado);
+      app.contrato(155);
+    }
+
+  </script>
+</body>
+
+</html>
